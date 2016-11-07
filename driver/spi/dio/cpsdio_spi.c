@@ -43,10 +43,10 @@
 #define CPS_SET_MC341_DS1X_SPI_WRITE_PACKET( address, type, value ) \
 CPS_SPI_SET_PACKET(	\
 			PAGE_CPS_MC341_DSX_DIO,	\
-			CPS_CATEGORY_DIO,	\
 			address, \
 			CPS_SPI_ACCESS_WRITE, \
 			type, \
+			0,\
 			value \
 )
 
@@ -64,10 +64,10 @@ CPS_SPI_SET_PACKET(	\
 #define CPS_SET_MC341_DS1X_SPI_READ_PACKET( address, type ) \
 		CPS_SPI_SET_PACKET(\
 			PAGE_CPS_MC341_DSX_DIO,\
-			CPS_CATEGORY_DIO,\
 			address,\
 			CPS_SPI_ACCESS_READ,\
 			type,	\
+			0,\
 			(0x0000)	\
 )
 
@@ -147,13 +147,17 @@ static long cpsdio_spi_write(struct spi_device *spi, int address, int size ,unsi
 		return -ENODEV;
 	}
 
-	tx.value = CPS_SET_MC341_DS1X_SPI_WRITE_PACKET(
-			address,
-			access_type,
-			value
-	);
+	tx.value = cpu_to_be32(
+			CPS_SET_MC341_DS1X_SPI_WRITE_PACKET(
+					address,
+					access_type,
+					value
+				)
+			);
+//	pr_info("tx.value=%lx\n",tx.value);
+//	pr_info("address %x value %lx, size %d", address, tx.value, sizeof(tx));
 
-	status = spi_write(spi, (const void *)&tx, sizeof(tx));
+	status = spi_write(spi, (const void *)&(tx.array[0]), sizeof(tx));
 
 	if (status < 0) {
 		pr_err("FAILURE: %s failed \n", __FUNCTION__);
@@ -195,11 +199,15 @@ static long cpsdio_spi_read(struct spi_device *spi, int address, int size ,unsig
 		pr_err("FAILURE: %s failed \n", __FUNCTION__);
 		return -ENODEV;
 	}
-
-	rx.value = CPS_SET_MC341_DS1X_SPI_READ_PACKET(
-			address,
-			access_type
+	rx.value = cpu_to_be32(
+			CPS_SET_MC341_DS1X_SPI_READ_PACKET(
+					address,
+					access_type
+			)
 	);
+
+//	pr_info("command %x %x, size %x", rx.COM_VAL.Frame.command[0], rx.COM_VAL.Frame.command[1], sizeof(rx.COM_VAL.Frame.command));
+//	pr_info("value %x %x size %x", rx.COM_VAL.value[0], rx.COM_VAL.value[1], sizeof(rx.COM_VAL.value));
 
 	status = spi_write_then_read(
 			spi,
@@ -213,7 +221,16 @@ static long cpsdio_spi_read(struct spi_device *spi, int address, int size ,unsig
 		pr_err("FAILURE: %s failed \n", __FUNCTION__);
 		return -ENODEV;
 	}
-	*value = rx.value;
+
+	switch( size ){
+	case 1:
+		*value = rx.COM_VAL.value[1];
+		break;
+	case 2:
+		*value = ( rx.COM_VAL.value[0] << 8 ) | rx.COM_VAL.value[1];
+		break;
+	}
+
 	return 0;
 }
 
@@ -517,7 +534,7 @@ static int CPSDIO_SPI_remove(struct spi_device *spi) {
 }
 
 static struct spi_device_id CPSDIO_SPI_id[] = {
-		{ "CPS_MC341_DS1X", 0 },
+		{ "CPSDIO_SPI", 0 },
 		{ },
 };
 MODULE_DEVICE_TABLE(spi, CPSDIO_SPI_id);
