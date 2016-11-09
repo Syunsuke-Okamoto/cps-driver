@@ -42,7 +42,7 @@
 
 #endif
 
-#define DRV_VERSION	"1.0.0"
+#define DRV_VERSION	"1.0.1"
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("CONTEC CONPROSYS Digital I/O driver");
@@ -805,12 +805,13 @@ static long cpsdio_ioctl( struct file *filp, unsigned int cmd, unsigned long arg
 
 						spin_lock_irqsave(&dev->lock, flags);
 
-///////////////////////// debug ( Change find_task_by_vpid function, EXPORT_SYMBOL_GPL. (See kernel/pid.c) )
-						dev->int_callback = find_task_by_vpid(ioc.val);
+///////////////////////// debug 
+//						dev->int_callback = find_task_by_vpid(ioc.val); // ( Caution : Change find_task_by_vpid function, EXPORT_SYMBOL_GPL. (See kernel/pid.c) )
+						dev->int_callback = get_pid_task( find_get_pid(ioc.val), PIDTYPE_PID );
 ///////////////////////// debug
 
 ///////////////////////// debug
-						DEBUG_CPSDIO_INTERRUPT_CHECK(KERN_INFO"--- SET_CALLBACK_PROCESS: val=%08X, int_callback=%08lX\n", 
+						DEBUG_CPSDIO_INTERRUPT_CHECK(KERN_INFO"--- SET_CALLBACK_PROCESS(get_pid_task): val=%08X, int_callback=%08lX\n", 
 							ioc.val,
 							(unsigned long)dev->int_callback);
 ///////////////////////// debug
@@ -857,6 +858,9 @@ static int cpsdio_open(struct inode *inode, struct file *filp )
 
 	if (notFirstOpenFlg[nodeNo]) {		// Ver.1.0.0 初回オープンでなければ（segmentation fault暫定対策）
 		if ( inode->i_private != (PCPSDIO_DRV_FILE)NULL ){
+
+			DEBUG_CPSDIO_OPEN(KERN_INFO"inode->private %x\n",(int)inode->i_private );
+
 			dev = (PCPSDIO_DRV_FILE)inode->i_private;
 			filp->private_data =  (PCPSDIO_DRV_FILE)dev;
 
@@ -869,7 +873,9 @@ static int cpsdio_open(struct inode *inode, struct file *filp )
 		}
 	}
 
-	filp->private_data = (PCPSDIO_DRV_FILE)kmalloc( sizeof(CPSDIO_DRV_FILE) , GFP_KERNEL );
+	DEBUG_CPSDIO_OPEN(KERN_INFO"inode->private %x\n",(int)inode->i_private );
+
+	filp->private_data = (PCPSDIO_DRV_FILE)kzalloc( sizeof(CPSDIO_DRV_FILE) , GFP_KERNEL );
 	if( filp->private_data == (PCPSDIO_DRV_FILE)NULL ){
 		iRet = -ENOMEM;
 		goto NOT_MEM_PRIVATE_DATA;
