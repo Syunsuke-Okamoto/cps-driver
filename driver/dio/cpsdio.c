@@ -42,7 +42,7 @@
 
 #endif
 
-#define DRV_VERSION	"1.0.1"
+#define DRV_VERSION	"1.0.2"
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("CONTEC CONPROSYS Digital I/O driver");
@@ -557,7 +557,9 @@ static long cpsdio_ioctl( struct file *filp, unsigned int cmd, unsigned long arg
 	unsigned long flags;
 
 	struct cpsdio_ioctl_arg ioc;
+	struct cpsdio_ioctl_string_arg ioc_str; // Ver.1.0.2
 	memset( &ioc, 0 , sizeof(ioc) );
+	memset( &ioc_str, 0 , sizeof(ioc_str) );// Ver.1.0.2
 
 	if ( dev == (PCPSDIO_DRV_FILE)NULL ){
 		DEBUG_CPSDIO_IOCTL(KERN_INFO"CPSDIO_DRV_FILE NULL POINTER.");
@@ -778,17 +780,19 @@ static long cpsdio_ioctl( struct file *filp, unsigned int cmd, unsigned long arg
 					break;
 
 		case IOCTL_CPSDIO_GET_DEVICE_NAME:
+			// Ver.1.0.2 Modify using from cpsdio_ioctl_arg to cpsdio_ioctl_string_arg
+
 					if(!access_ok(VERITY_WRITE, (void __user *)arg, _IOC_SIZE(cmd) ) ){
 						return -EFAULT;
 					}
-					if( copy_from_user( &ioc, (int __user *)arg, sizeof(ioc) ) ){
+					if( copy_from_user( &ioc_str, (int __user *)arg, sizeof(ioc_str) ) ){
 						return -EFAULT;
 					}
 					spin_lock_irqsave(&dev->lock, flags);
-					cpsdio_get_dio_devname( dev->node , ioc.str );
+					cpsdio_get_dio_devname( dev->node , ioc_str.str );
 					spin_unlock_irqrestore(&dev->lock, flags);
 					
-					if( copy_to_user( (int __user *)arg, &ioc, sizeof(ioc) ) ){
+					if( copy_to_user( (int __user *)arg, &ioc_str, sizeof(ioc_str) ) ){
 						return -EFAULT;
 					}
 					break;
@@ -824,6 +828,22 @@ static long cpsdio_ioctl( struct file *filp, unsigned int cmd, unsigned long arg
 					}
 					break;
 ///////////////////////// debug
+		case IOCTL_CPSDIO_GET_DRIVER_VERSION:
+			// Ver.1.0.2 Add
+			if(!access_ok(VERITY_WRITE, (void __user *)arg, _IOC_SIZE(cmd) ) ){
+				return -EFAULT;
+			}
+			if( copy_from_user( &ioc_str, (int __user *)arg, sizeof(ioc_str) ) ){
+				return -EFAULT;
+			}
+			spin_lock_irqsave(&dev->lock, flags);
+			strcpy(ioc_str.str, DRV_VERSION);
+			spin_unlock_irqrestore(&dev->lock, flags);
+
+			if( copy_to_user( (int __user *)arg, &ioc_str, sizeof(ioc_str) ) ){
+				return -EFAULT;
+			}
+			break;
 	}
 
 	return 0;

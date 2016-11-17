@@ -40,7 +40,7 @@
  #include "../../include/cpsaio.h"
 
 #endif
-#define DRV_VERSION	"1.0.8"
+#define DRV_VERSION	"1.0.9"
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("CONTEC CONPROSYS Analog I/O driver");
@@ -1245,6 +1245,7 @@ static long cpsaio_ioctl( struct file *filp, unsigned int cmd, unsigned long arg
 	unsigned short valw = 0;
 	unsigned long valdw = 0;
 	struct cpsaio_ioctl_arg ioc;
+	struct cpsaio_ioctl_string_arg ioc_str; // Ver.1.0.9
 	struct cpsaio_direct_arg d_ioc;
 	struct cpsaio_direct_command_arg dc_ioc;
 	unsigned int num = 0;
@@ -1254,6 +1255,7 @@ static long cpsaio_ioctl( struct file *filp, unsigned int cmd, unsigned long arg
 	unsigned int abi ;
 
 	memset( &ioc, 0 , sizeof(ioc) );
+	memset( &ioc_str, 0, sizeof(ioc_str) );	// Ver.1.0.9
 	memset( &d_ioc, 0, sizeof(d_ioc) );
 	memset( &dc_ioc, 0, sizeof(dc_ioc) );
 
@@ -1604,17 +1606,18 @@ static long cpsaio_ioctl( struct file *filp, unsigned int cmd, unsigned long arg
 
 		case IOCTL_CPSAIO_GET_DRIVER_VERSION:
 			// Ver.1.0.8 Add
+			// Ver.1.0.9 Modify using from cpsaio_ioctl_arg to cpsaio_ioctl_string_arg
 			if(!access_ok(VERITY_WRITE, (void __user *)arg, _IOC_SIZE(cmd) ) ){
 				return -EFAULT;
 			}
-			if( copy_from_user( &ioc, (int __user *)arg, sizeof(ioc) ) ){
+			if( copy_from_user( &ioc_str, (int __user *)arg, sizeof(ioc_str) ) ){
 				return -EFAULT;
 			}
 			spin_lock_irqsave(&dev->lock, flags);
-			strcpy(ioc.str, DRV_VERSION);
+			strcpy(ioc_str.str, DRV_VERSION);
 			spin_unlock_irqrestore(&dev->lock, flags);
 
-			if( copy_to_user( (int __user *)arg, &ioc, sizeof(ioc) ) ){
+			if( copy_to_user( (int __user *)arg, &ioc_str, sizeof(ioc_str) ) ){
 				return -EFAULT;
 			}
 			break;

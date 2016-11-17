@@ -48,7 +48,7 @@
 
 #endif
 
-#define DRV_VERSION	"1.0.7"
+#define DRV_VERSION	"1.0.8"
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("CONTEC CONPROSYS SenSor Input driver");
@@ -912,12 +912,14 @@ static long cpsssi_ioctl( struct file *filp, unsigned int cmd, unsigned long arg
 	unsigned long flags;
 	
 	struct cpsssi_ioctl_arg ioc;
+	struct cpsssi_ioctl_string_arg ioc_str; // Ver.1.0.8
 	struct cpsssi_direct_command_arg dc_ioc; // Ver 1.0.7
 
 	PCPSSSI_4P_CHANNEL_DATA pData = (PCPSSSI_4P_CHANNEL_DATA)dev->data.ChannelData;
 
 
 	memset( &ioc, 0 , sizeof(ioc) );
+	memset( &ioc_str, 0 , sizeof(ioc_str) ); // Ver.1.0.8
 	memset( &dc_ioc, 0 , sizeof(dc_ioc) );  // Ver 1.0.7
 	if ( dev == (PCPSSSI_DRV_FILE)NULL ){
 		DEBUG_CPSSSI_IOCTL(KERN_INFO"CPSSSI_DRV_FILE NULL POINTER.");
@@ -1218,17 +1220,18 @@ static long cpsssi_ioctl( struct file *filp, unsigned int cmd, unsigned long arg
 					break;
 
 			case IOCTL_CPSSSI_GET_DRIVER_VERSION:
+				// Ver.1.0.8 Modify using from cpsssi_ioctl_arg to cpsssi_ioctl_string_arg
 				if(!access_ok(VERITY_WRITE, (void __user *)arg, _IOC_SIZE(cmd) ) ){
 					return -EFAULT;
 				}
-				if( copy_from_user( &ioc, (int __user *)arg, sizeof(ioc) ) ){
+				if( copy_from_user( &ioc_str, (int __user *)arg, sizeof(ioc_str) ) ){
 					return -EFAULT;
 				}
 				spin_lock_irqsave(&dev->lock, flags);
-				strcpy(ioc.str, DRV_VERSION);
+				strcpy(ioc_str.str, DRV_VERSION);
 				spin_unlock_irqrestore(&dev->lock, flags);
 
-				if( copy_to_user( (int __user *)arg, &ioc, sizeof(ioc) ) ){
+				if( copy_to_user( (int __user *)arg, &ioc_str, sizeof(ioc_str) ) ){
 					return -EFAULT;
 				}
 				break;
