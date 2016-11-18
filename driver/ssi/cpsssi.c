@@ -48,7 +48,7 @@
 
 #endif
 
-#define DRV_VERSION	"1.0.8"
+#define DRV_VERSION	"1.0.9"
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("CONTEC CONPROSYS SenSor Input driver");
@@ -110,6 +110,12 @@ static LIST_HEAD(cpsssi_xp_head);
 #define DEBUG_CPSSSI_IOCTL(fmt...)	printk(fmt)
 #else
 #define DEBUG_CPSSSI_IOCTL(fmt...)	do { } while (0)
+#endif
+
+#if 0
+#define DEBUG_CPSSSI_INTERRUPT_CHECK(fmt...)	printk(fmt)
+#else
+#define DEBUG_CPSSSI_INTERRUPT_CHECK(fmt...)	do { } while (0)
 #endif
 
 /// @}
@@ -867,22 +873,35 @@ static const int AM335X_IRQ_NMI=7;
 irqreturn_t cpsssi_isr_func(int irq, void *dev_instance){
 
 	unsigned short wStatus;
-
+	int handled = 0;
 	PCPSSSI_DRV_FILE dev =(PCPSSSI_DRV_FILE) dev_instance;
 	
-	if( !dev ) return IRQ_NONE;
-
-	if( contec_mcs341_device_IsCategory( ( dev->node + 1 ) , CPS_CATEGORY_SSI ) ){ 
-	
-	}
-	else return IRQ_NONE;
-	
-
-	if(printk_ratelimit()){
-		printk("cpsssi Device Number:%d IRQ interrupt !\n",( dev->node + 1 ) );
+	// Ver.1.0.9 Don't insert interrupt "xx callbacks suppressed" by IRQ_NONE.
+	if( !dev ){
+		DEBUG_CPSSSI_INTERRUPT_CHECK(KERN_INFO"This interrupt is not CONPROSYS SSI Device.");
+		goto END_OF_INTERRUPT_CPSSSI;
 	}
 
-	return IRQ_HANDLED;
+	if( !contec_mcs341_device_IsCategory(  dev->node  , CPS_CATEGORY_SSI ) ){
+		DEBUG_CPSSSI_INTERRUPT_CHECK("This interrupt is not Category SSI Device.");
+		goto END_OF_INTERRUPT_CPSSSI;
+	}
+	
+	spin_lock(&dev->lock);
+
+	handled = 1;
+
+//END_OF_INTERRUPT_SPIN_UNLOCK_CPSSSI:
+	spin_unlock(&dev->lock);
+	
+END_OF_INTERRUPT_CPSSSI:
+
+	if(IRQ_RETVAL(handled) ){
+		if(printk_ratelimit())
+			printk("cpsssi Device Number:%d IRQ interrupt !\n",( dev->node ) );
+	}
+
+	return IRQ_RETVAL(handled);
 }
 
 
@@ -1331,7 +1350,7 @@ static int cpsssi_open(struct inode *inode, struct file *filp )
 //	memset( &dev->data.ChannelData, 0x00, sizeof(CPSSSI_4P_CHANNEL_DATA) * dev->data.ssiChannel );
 
 	//IRQ Request
-	ret = request_irq(AM335X_IRQ_NMI, cpsssi_isr_func, IRQF_SHARED, "cps-ssi-intr", dev);
+	//ret = request_irq(AM335X_IRQ_NMI, cpsssi_isr_func, IRQF_SHARED, "cps-ssi-intr", dev);
 
 	if( ret ){
 		DEBUG_CPSSSI_OPEN(" request_irq failed.(%x) \n",ret);
@@ -1388,7 +1407,7 @@ static int cpsssi_close(struct inode * inode, struct file *filp ){
 
 		if( dev->ref == 0 ){
 
-			free_irq(AM335X_IRQ_NMI, dev);
+			//free_irq(AM335X_IRQ_NMI, dev);
 			kfree(dev->data.ChannelData);
 
 			cps_common_mem_release( dev->localAddr,

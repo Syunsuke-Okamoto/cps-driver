@@ -43,7 +43,7 @@
 #endif
 
 
-#define DRV_VERSION	"0.9.4"
+#define DRV_VERSION	"0.9.5"
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("CONTEC CONPROSYS Counter I/O driver");
@@ -151,6 +151,12 @@ static	int *notFirstOpenFlg = NULL;		// Ver.0.9.3 segmentation fault暫定対策
 #define DEBUG_CPSCNT_IOCTL(fmt...)	printk(fmt)
 #else
 #define DEBUG_CPSCNT_IOCTL(fmt...)	do { } while (0)
+#endif
+
+#if 0
+#define DEBUG_CPSCNT_INTERRUPT_CHECK(fmt...)	printk(fmt)
+#else
+#define DEBUG_CPSCNT_INTERRUPT_CHECK(fmt...)	do { } while (0)
 #endif
 
 /// @}
@@ -1082,22 +1088,35 @@ static const int AM335X_IRQ_NMI=7;
 irqreturn_t cpscnt_isr_func(int irq, void *dev_instance){
 
 	unsigned short wStatus;
-
+	int handled = 0;
 	PCPSCNT_DRV_FILE dev =(PCPSCNT_DRV_FILE) dev_instance;
 	
-	if( !dev ) return IRQ_NONE;
-
-	if( contec_mcs341_device_IsCategory( dev->node , CPS_CATEGORY_CNT ) ){ 
-
+	// Ver.0.9.5 Don't insert interrupt "xx callbacks suppressed" by IRQ_NONE.
+	if( !dev ){
+		DEBUG_CPSCNT_INTERRUPT_CHECK(KERN_INFO"This interrupt is not CONPROSYS CNT Device.");
+		goto END_OF_INTERRUPT_CPSCNT;
 	}
-	else return IRQ_NONE;
+
+	if( !contec_mcs341_device_IsCategory( dev->node , CPS_CATEGORY_CNT ) ){
+		DEBUG_CPSCNT_INTERRUPT_CHECK("This interrupt is not Category CNT Device.");
+		goto END_OF_INTERRUPT_CPSCNT;
+	}
+
+	spin_lock(&dev->lock);
+
+	handled = 1;
+
+//END_OF_INTERRUPT_SPIN_UNLOCK_CPSSSI:
+		spin_unlock(&dev->lock);
+
+END_OF_INTERRUPT_CPSCNT:
 	
-
-	if(printk_ratelimit()){
-		printk("cpscnt Device Number:%d IRQ interrupt !\n",( dev->node ) );
+	if(IRQ_RETVAL(handled)){
+		if(printk_ratelimit())
+			printk("cpscnt Device Number:%d IRQ interrupt !\n",( dev->node ) );
 	}
 
-	return IRQ_HANDLED;
+	return IRQ_RETVAL(handled);
 }
 
 

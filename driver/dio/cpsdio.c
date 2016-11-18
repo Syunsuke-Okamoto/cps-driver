@@ -42,7 +42,7 @@
 
 #endif
 
-#define DRV_VERSION	"1.0.2"
+#define DRV_VERSION	"1.0.4"
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("CONTEC CONPROSYS Digital I/O driver");
@@ -501,35 +501,54 @@ static const int AM335X_IRQ_NMI=7;
 irqreturn_t cpsdio_isr_func(int irq, void *dev_instance){
 
 	unsigned short wStatus;
+	int handled = 0;
 
 	PCPSDIO_DRV_FILE dev =(PCPSDIO_DRV_FILE) dev_instance;
 	
-	if( !dev ) return IRQ_NONE;
+	// Ver.0.9.5 Don't insert interrupt "xx callbacks suppressed" by IRQ_NONE.
+	if( !dev ){
+		DEBUG_CPSDIO_INTERRUPT_CHECK(KERN_INFO"This interrupt is not CONPROSYS DIO Device.");
+		goto END_OF_INTERRUPT_CPSDIO;
+	}
 
 	DEBUG_CPSDIO_INTERRUPT_CHECK(KERN_INFO"--- isr_func: isDio=%u\n", contec_mcs341_device_IsCategory( dev->node , CPS_CATEGORY_DIO ) );
-	if( contec_mcs341_device_IsCategory( dev->node , CPS_CATEGORY_DIO ) ){ 
-		cpsdio_read_interrupt_status( (unsigned long)dev->baseAddr, &wStatus);
 
-		if( dev->int_callback != NULL && wStatus ){
+	if( !contec_mcs341_device_IsCategory( dev->node , CPS_CATEGORY_DIO ) ){
+		DEBUG_CPSDIO_INTERRUPT_CHECK(KERN_INFO"--- IRQ_NONE\n");
+		goto END_OF_INTERRUPT_CPSDIO;
+	}
+
+	spin_lock(&dev->lock);
+
+	cpsdio_read_interrupt_status( (unsigned long)dev->baseAddr, &wStatus);
+
+	if( !wStatus ){
+		DEBUG_CPSDIO_INTERRUPT_CHECK(KERN_INFO"--- wStatus = 0 IRQ_NONE\n");
+		goto END_OF_INTERRUPT_SPIN_UNLOCK_CPSDIO;
+	}
+
+	handled = 1;
+
+	if( dev->int_callback != NULL ){
 			// sending user callback function ( kernel context to user context <used signal SIGUSR1 > )
 			DEBUG_CPSDIO_INTERRUPT_CHECK(KERN_INFO"--- send_sig (1): wStatus=%02X\n", 
 							wStatus);
 			send_sig( SIGUSR2, dev->int_callback, 1 );
-	DEBUG_CPSDIO_INTERRUPT_CHECK(KERN_INFO"--- send_sig (2): wStatus=%02X\n", 
+			DEBUG_CPSDIO_INTERRUPT_CHECK(KERN_INFO"--- send_sig (2): wStatus=%02X\n",
 							wStatus);
-		}
-	}
-	else {
-		DEBUG_CPSDIO_INTERRUPT_CHECK(KERN_INFO"--- IRQ_NONE\n");
-		return IRQ_NONE;
-	}
-	
-
-	if(printk_ratelimit()){
-		printk("cpsdio Device Number:%d IRQ interrupt !\n",( dev->node ) );
 	}
 
-	return IRQ_HANDLED;
+END_OF_INTERRUPT_SPIN_UNLOCK_CPSDIO:
+	spin_unlock(&dev->lock);
+
+END_OF_INTERRUPT_CPSDIO:
+
+	if( IRQ_RETVAL(handled) ){
+		if(printk_ratelimit())
+			printk("cpsdio Device Number:%d IRQ interrupt !\n",( dev->node ) );
+	}
+
+	return IRQ_RETVAL(handled);
 }
 
 
