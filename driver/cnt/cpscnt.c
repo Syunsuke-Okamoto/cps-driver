@@ -43,7 +43,7 @@
 #endif
 
 
-#define DRV_VERSION	"0.9.5"
+#define DRV_VERSION	"0.9.6"
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("CONTEC CONPROSYS Counter I/O driver");
@@ -1717,6 +1717,7 @@ static int cpscnt_open(struct inode *inode, struct file *filp )
 	spin_lock_init( &dev->lock );
 
 	dev->ref = 1;
+	notFirstOpenFlg[nodeNo]++;		// Ver.0.9.6 segmentation fault暫定対策フラグインクリメント(Forget 0.9.3...)
 
 	return 0;
 NOT_FOUND_CNT_PRODUCT:

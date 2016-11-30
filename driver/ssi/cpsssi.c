@@ -48,7 +48,7 @@
 
 #endif
 
-#define DRV_VERSION	"1.0.9"
+#define DRV_VERSION	"1.0.10"
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("CONTEC CONPROSYS SenSor Input driver");
@@ -1360,6 +1360,7 @@ static int cpsssi_open(struct inode *inode, struct file *filp )
 	spin_lock_init( &dev->lock );
 
 	dev->ref = 1;
+	notFirstOpenFlg[nodeNo]++;		// Ver.1.0.10 segmentation fault暫定対策フラグインクリメント(Forget 1.0.7...)
 
 	return 0;
 
