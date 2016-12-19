@@ -346,7 +346,7 @@ static long cpsaio_read_ao_status( unsigned long BaseAddr, unsigned short *wStat
 	@~Japanese
 	@brief 割り込みのステータスを取得する関数
 	@param BaseAddr : ベースアドレス
-	@param wStatus : 割込ステータス
+	@param wIntStatus : 割込ステータス
 	@return 成功 : 0
 **/
 static long cpsaio_read_interrupt_status( unsigned long BaseAddr, unsigned short *wIntStatus )
