@@ -947,6 +947,29 @@ EXPORT_SYMBOL_GPL(contec_mcs341_controller_cpsDevicesInit);
 static unsigned int _contec_mcs341_controller_cpsChildUnitInit(unsigned int childType, int isUsedDelay)
 {
 	
+	DEBUG_MODULE_PARAM(KERN_INFO"child unit %d\n", childType );
+
+	// init pin mode
+	contec_mcs341_controller_setPinMode(
+		CPS_MCS341_SETPINMODE_3G3_INPUT,
+		CPS_MCS341_SETPINMODE_3G4_INPUT,
+		CPS_MCS341_SETPINMODE_CTSSUB_INPUT,
+		CPS_MCS341_SETPINMODE_RTSSUB_INPUT
+	);
+
+	if( child_unit != CPS_CHILD_UNIT_NONE ){
+
+		// POWER ON ( 24V <USB> )
+		mcs341_systeminit_reg |= CPS_MCS341_SYSTEMINIT_SETEXTEND_POWER;
+		contec_mcs341_controller_setSystemInit();
+		// Wait ( 5sec )
+		contec_cps_micro_delay_sleep(5 * USEC_PER_SEC, isUsedDelay);
+
+		// RESET
+		mcs341_systeminit_reg |= CPS_MCS341_SYSTEMINIT_SETEXTEND_RESET;
+		contec_mcs341_controller_setSystemInit();
+	}
+
 	switch( childType ){
 	case CPS_CHILD_UNIT_INF_MC341B_00:		// CPS-MCS341G-DS1-111
 		contec_mcs341_controller_setPinMode(
@@ -984,25 +1007,9 @@ static unsigned int _contec_mcs341_controller_cpsChildUnitInit(unsigned int chil
 		break;
 	case CPS_CHILD_UNIT_NONE:
 	default:
-		contec_mcs341_controller_setPinMode(
-			CPS_MCS341_SETPINMODE_3G3_INPUT,
-			CPS_MCS341_SETPINMODE_3G4_INPUT,
-			CPS_MCS341_SETPINMODE_CTSSUB_INPUT,
-			CPS_MCS341_SETPINMODE_RTSSUB_INPUT
-		);
 		//break;
 		return 0;
 	}
-
-	// POWER ON
-	mcs341_systeminit_reg |= CPS_MCS341_SYSTEMINIT_SETEXTEND_POWER;
-	contec_mcs341_controller_setSystemInit();
-	// Wait ( 5sec )
-	contec_cps_micro_delay_sleep(5 * USEC_PER_SEC, isUsedDelay);
-	// RESET
-	mcs341_systeminit_reg |= CPS_MCS341_SYSTEMINIT_SETEXTEND_RESET;
-	contec_mcs341_controller_setSystemInit();
-
 
 	// GPIO(0_23) High Settings
 	switch( childType ){
@@ -1103,9 +1110,13 @@ void mcs341_controller_timer_function(unsigned long arg)
 	if( !shutdown_sequence ){
 		/* Ver.1.0.13 Keep the system status of FPGA. If system status of FPGA was initialized, timer function is restarted the FPGA. */
 		if( CPS_MCS341_SYSTEMSTATUS_BUSY( contec_mcs341_controller_getSystemStatus() ) ){
+			DEBUG_TIMER_FUNC_PRINT(KERN_INFO"<cps-driver>:FPGA re-init sequence!\n");
 			// restarting initialize !!
-			_contec_mcs341_controller_cpsDevicesInit( 1 );
-			_contec_mcs341_controller_cpsChildUnitInit(child_unit, 1);
+			mcs341_systeminit_reg = 0;
+			if( _contec_mcs341_controller_cpsDevicesInit( 1 ) == 0 ){
+				_contec_mcs341_controller_cpsChildUnitInit(child_unit, 1);
+			}
+			DEBUG_TIMER_FUNC_PRINT(KERN_INFO"<cps-driver>:last status %x \n",mcs341_systeminit_reg);
 		}
 	}else{
 			// After Shutdown /Reboot sequence
@@ -1787,9 +1798,7 @@ static int contec_mcs341_controller_init(void)
 
 	if( (ret = contec_mcs341_controller_cpsDevicesInit() ) == 0 ){
 
-		DEBUG_MODULE_PARAM("child unit %d\n", child_unit );
-
-		contec_mcs341_controller_cpsChildUnitInit(child_unit);
+			contec_mcs341_controller_cpsChildUnitInit(child_unit);
 
 		//2016.02.17 timer add Ver.1.0.7
 		init_timer(&mcs341_timer);
@@ -1798,7 +1807,7 @@ static int contec_mcs341_controller_init(void)
 		mcs341_timer.expires = jiffies + CPS_CONTROLLER_MCS341_TICK;
 		add_timer(&mcs341_timer);
 
-		DEBUG_MODULE_PARAM("reset_button_check_mode %d\n",reset_button_check_mode);
+		DEBUG_MODULE_PARAM(KERN_INFO"reset_button_check_mode %d\n",reset_button_check_mode);
 
 		if( !reset_button_check_mode ){
 
