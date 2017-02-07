@@ -37,10 +37,10 @@
 #include <linux/time.h>
 #include <linux/reboot.h>
 
-#define DRV_VERSION	"1.0.14"
+#define DRV_VERSION	"1.0.15"
 
 MODULE_LICENSE("GPL");
-MODULE_ALIAS("CONTEC CONPROSYS BASE Driver");
+MODULE_DESCRIPTION("CONTEC CONPROSYS BASE Driver");
 MODULE_AUTHOR("syunsuke okamoto");
 MODULE_VERSION(DRV_VERSION);
 
@@ -68,7 +68,7 @@ MODULE_VERSION(DRV_VERSION);
 #define DEBUG_INITMEMORY(fmt...)	do { } while (0)
 #endif
 
-#if 0 
+#if 0
 #define DEBUG_EXITMEMORY(fmt...)        printk(fmt)
 #else
 #define DEBUG_EXITMEMORY(fmt...)        do { } while (0)
@@ -175,14 +175,18 @@ static unsigned int ledState[CPS_MCS341_MAX_LED_ARRAY_NUM] ={0};
 // 2016.02.19 GPIO-87 Push/Pull Test Mode 
 static unsigned int reset_button_check_mode = 0;///< gpio-87 test mode ( 1...Enable, 0... Disable )
 module_param(reset_button_check_mode, uint, 0644 );
+MODULE_PARM_DESC(reset_button_check_mode, "Reset Button changes GPIO Mode.( 1:Enable 0:Disable )");
 
 // 2016.04.14  and CPS-MC341-DS2 and CPS-MC341Q-DS1 mode add (Ver.1.0.7)
 static unsigned int child_unit = CPS_CHILD_UNIT_NONE;	//CPS-MC341-DS1
 module_param(child_unit, uint, 0644 );
+MODULE_PARM_DESC(child_unit, "Enable Initialize Child Unit.[ 1:SL8084T 2:RS422A/485 3:CMM-920GP2 4:HL8548 5:ES920LR]");
 
-// 2016.02.19 GPIO-87 Push/Pull Test Mode 
-static unsigned int watchdog_timer_msec = 0;///< gpio-87 test mode ( 0..None, otherwise 0... watchdog on )
+// 2016.02.19 watchdog_timer (Not MCS341 Series Hardware)
+static unsigned int watchdog_timer_msec = 0;///< watchdog mode ( 0..None, otherwise:watchdog on )
 //module_param(watchdog_timer_msec, uint, 0644 );
+//MODULE_PARM_DESC(watchdog_timer_msec, "Enable Watchdog Mode.( 0..None, otherwise:watchdog on )");
+
 
 static unsigned char deviceNumber;		///< device number
 
@@ -794,6 +798,61 @@ EXPORT_SYMBOL_GPL(contec_mcs341_controller_getDiValue);
 
 /**
 	@~English
+	@brief This function is alloc/release CPS-Device memory by MCS341.
+	@param isAlloc : 0... release, 1... alloc
+	@par This function is sub-routine.
+	@~Japanese
+	@brief MCS341 Device Memoryのalloc/releaseを行うための関数。
+	@param isUsedDelay : 0... release, 1... alloc
+	@par この関数は内部関数です。
+	@note Ver.1.0.15 に作成
+**/
+static int __contec_mcs341_device_memory( int isAlloc )
+{
+	void __iomem *allocaddr;
+	int iRet = 0;
+	int cnt;
+
+	if( deviceNumber != 0x3f && deviceNumber != 0 ){
+		for( cnt = 0; cnt < deviceNumber ; cnt++ ){
+			if( isAlloc ){
+				DEBUG_INITMEMORY(KERN_INFO " cps-system : device number : %d \n", deviceNumber );
+				if( !map_devbaseaddr[cnt] ){
+					allocaddr =
+							cps_common_mem_alloc( (0x08000000 + (cnt + 1) * 0x100 ),
+							0x10,
+							"cps-mcs341-common-dev",
+	//						CPS_COMMON_MEM_NONREGION	 );
+							CPS_COMMON_MEM_REGION );
+					if( !allocaddr ){
+						iRet = 1;
+					}else{
+						map_devbaseaddr[cnt] = allocaddr;
+					}
+				}
+
+				if( map_devbaseaddr[cnt] ){
+					DEBUG_INITMEMORY(KERN_INFO "cps-system: device %d Address:%lx \n",cnt,(unsigned long)map_devbaseaddr[cnt]);
+				}
+
+			}else{
+				DEBUG_EXITMEMORY(KERN_INFO "cps-system: Release Before device %d Address:%lx \n",cnt,(unsigned long)map_devbaseaddr[cnt]);
+				cps_common_mem_release( (0x08000000 + (cnt + 1) * 0x100 ),
+						0x10,
+						map_devbaseaddr[cnt],
+//					CPS_COMMON_MEM_NONREGION );
+						CPS_COMMON_MEM_REGION	 );
+				DEBUG_EXITMEMORY(KERN_INFO "cps-system: Free Before device %d Address:%lx \n",cnt,(unsigned long)map_devbaseaddr[cnt]);
+				map_devbaseaddr[cnt] = NULL; // Ver.1.0.15
+				DEBUG_EXITMEMORY(KERN_INFO "cps-system: Free After device %d Address:%lx \n",cnt,(unsigned long)map_devbaseaddr[cnt]);
+			}
+		}
+	}
+	return iRet;
+}
+
+/**
+	@~English
 	@brief This function is completed by MCS341 Device ID-Sel.
 	@param isUsedDelay : 0... sleep, 1... delay
 	@par This function is sub-routine of Initialize.
@@ -801,24 +860,15 @@ EXPORT_SYMBOL_GPL(contec_mcs341_controller_getDiValue);
 	@brief MCS341 ControllerのID-SELを完了させるための関数。
 	@param isUsedDelay : 0... sleep, 1... delay
 	@par この関数は内部関数です。初期化を完了させるためのサブルーチンになります。
+	@note Ver.1.0.15以降 メモリの作成部分を分離(ここでは行わない)
 **/
 //static void __contec_mcs341_device_idsel_complete( void ){
 static void __contec_mcs341_device_idsel_complete( int isUsedDelay ){
 	int cnt;
 	int nInterrupt;
 
-	deviceNumber = contec_mcs341_controller_getDeviceNum();
-	DEBUG_INITMEMORY(KERN_INFO " cps-system : device number : %d \n", deviceNumber );
 	if( deviceNumber != 0x3f && deviceNumber != 0 ){
-		for( cnt = 0; cnt < deviceNumber ; cnt++ ){
-			 map_devbaseaddr[cnt] = 
-				cps_common_mem_alloc( (0x08000000 + (cnt + 1) * 0x100 ),
-				0x10,
-				"cps-mcs341-common-dev",
-				CPS_COMMON_MEM_NONREGION	 );
-				DEBUG_INITMEMORY(KERN_INFO "cps-system: device %d Address:%lx \n",cnt,(unsigned long)map_devbaseaddr[cnt]);
-		}
-		// 
+
 		cps_common_outb( (unsigned long) ( map_devbaseaddr[0] ) , (deviceNumber | 0x80 ) );
 		contec_cps_micro_delay_sleep( 1 * USEC_PER_MSEC, isUsedDelay );
 
@@ -826,6 +876,7 @@ static void __contec_mcs341_device_idsel_complete( int isUsedDelay ){
 		for( cnt = 0; cnt < nInterrupt; cnt++ )
 			contec_mcs341_controller_setInterrupt( 0 , cnt );
 	}
+
 }
 
 /**
@@ -872,6 +923,8 @@ static int _contec_mcs341_controller_cpsDevicesInit( int isUsedDelay ){
 		contec_mcs341_controller_setFpgaResetReg();
 	}
 
+
+
 	if( CPS_MCS341_SYSTEMSTATUS_BUSY( valb ) ){
 
 		mcs341_systeminit_reg |= CPS_MCS341_SYSTEMINIT_SETRESET;
@@ -890,7 +943,16 @@ static int _contec_mcs341_controller_cpsDevicesInit( int isUsedDelay ){
 			CPS-MCS341 must wait 1 msec.
 		*/ 		
 		contec_cps_micro_delay_sleep( (1 * USEC_PER_MSEC), isUsedDelay );
+
+		//Memory Initialize
+		deviceNumber = contec_mcs341_controller_getDeviceNum();
+		DEBUG_INITMEMORY(KERN_INFO " cps-system : device number : %d \n", deviceNumber );
+		if( __contec_mcs341_device_memory( CPS_DEVICE_COMMON_MEMORY_ALLOCATE ) ){
+			return -ENOMEM;
+		}
+		/* idsel complete */
 		__contec_mcs341_device_idsel_complete(isUsedDelay);
+
 	/*
 		cps_common_outb( (unsigned long)(map_baseaddr + CPS_CONTROLLER_MCS341_RESET_WADDR) ,
 			CPS_MCS341_RESET_SET_IDSEL_COMPLETE );
@@ -910,6 +972,13 @@ static int _contec_mcs341_controller_cpsDevicesInit( int isUsedDelay ){
 			if( timeout >= CPS_DEVICE_INIT_TIMEOUT ) return -ENXIO;
 			timeout ++; 
 		}while( !(valb & CPS_MCS341_SYSTEMSTATUS_INTERRUPT_END)  );
+	}else{
+		//Memory Initialize
+		deviceNumber = contec_mcs341_controller_getDeviceNum();
+		DEBUG_INITMEMORY(KERN_INFO " cps-system : device number : %d \n", deviceNumber );
+		if( __contec_mcs341_device_memory( CPS_DEVICE_COMMON_MEMORY_ALLOCATE ) ){
+			return -ENOMEM;
+		}
 	}
 	/*
 		When many devices was connected more than 15, getDeviceNumber gets 14 values.
@@ -1861,20 +1930,15 @@ static void contec_mcs341_controller_exit(void)
 		gpio_free(CPS_CONTROLLER_MCS341_RESET_PIN);
 	}
 
-	if( deviceNumber != 0x3f ){
-		for( cnt = 0; cnt < deviceNumber ; cnt++ ){
-			cps_common_mem_release( (0x08000000 + (cnt + 1) * 0x100 ),
-				0x10,
-				map_devbaseaddr[cnt],
-//			CPS_COMMON_MEM_NONREGION );
-				CPS_COMMON_MEM_REGION	 );
-		}
-	} 
+	__contec_mcs341_device_memory( CPS_DEVICE_COMMON_MEMORY_RELEASE );// Ver 1.0.15
 
 	cps_common_mem_release( 0x08000000,
 		0x100,
 		map_baseaddr ,
 		CPS_COMMON_MEM_REGION);
+	DEBUG_INITMEMORY(KERN_INFO "cps-system:  Address:%lx \n",(unsigned long)map_baseaddr);
+	map_baseaddr = NULL; // Ver.1.0.15
+
 	return;
 }
 

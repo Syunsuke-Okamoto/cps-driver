@@ -168,6 +168,10 @@ typedef struct __cps_device_id{
 
 #define CPS_DEVICE_INIT_TIMEOUT 1000
 
+#define CPS_DEVICE_COMMON_MEMORY_RELEASE	0
+#define CPS_DEVICE_COMMON_MEMORY_ALLOCATE	1
+
+
 #include "cps_def.h"
 
 #include <linux/gpio.h>
