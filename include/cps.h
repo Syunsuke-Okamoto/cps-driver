@@ -76,7 +76,9 @@ typedef struct __cps_device_id{
 
 #define CPS_MCS341_SYSTEMSTATUS_BUSY(val) ( val & (CPS_MCS341_SYSTEMSTATUS_RESETBUSY | CPS_MCS341_SYSTEMSTATUS_INITBUSY) )
 #define CPS_MCS341_SYSTEMSTATUS_INITEND(val) ( val & (CPS_MCS341_SYSTEMSTATUS_INTERRUPT_END|CPS_MCS341_SYSTEMSTATUS_INIT_END) )
-#define CPS_MCS341_SYSTEMSTATUS_DIPSWITCH( n , val ) ( ( ( val & 0xF0 ) >> 4 ) & (1 << n) )
+#define CPS_MCS341_SYSTEMSTATUS_DIPSWITCH_ALL( val )	( ( val & 0xF0 ) >> 4 )
+#define CPS_MCS341_SYSTEMSTATUS_DIPSWITCH( n , val ) ( CPS_MCS341_SYSTEMSTATUS_DIPSWITCH_ALL( val ) & (1 << n) )
+
 
 /* Controller SYSTEMINIT Values MACRO */
 
@@ -127,7 +129,7 @@ typedef struct __cps_device_id{
 #define CPS_MCS341_DIO_FILTER_SET(val) ( (val & 0x0F) << 4 )
 #define CPS_MCS341_DIO_DIVALUE_GET(val) ( val & 0x0F )
 #define CPS_MCS341_DIO_DOECHOVALUE_GET(val)	( (val & 0xF0) >> 4)
-#define CPS_MCS341_DIO_DOVALUE_SET(val) ( ( val & 0xF0 ) >> 4 )
+#define CPS_MCS341_DIO_DOVALUE_SET(val) ( ( val & 0x0F ) << 4 )
 
 #define CPS_MCS341_DIO_PORT	1	///< Port
 #define CPS_MCS341_DIO_BIT	2 ///< Bit
