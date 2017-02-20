@@ -37,7 +37,7 @@
 #include <linux/time.h>
 #include <linux/reboot.h>
 
-#define DRV_VERSION	"1.0.15"
+#define DRV_VERSION	"1.1.0"
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("CONTEC CONPROSYS BASE Driver");
@@ -684,9 +684,25 @@ static unsigned char contec_mcs341_controller_getSystemStatus(void)
 	unsigned char valb = 0;
 	contec_mcs341_inpb( CPS_CONTROLLER_MCS341_SYSTEMSTATUS_RADDR, &valb );
 	DEBUG_SYSTEM_STATUS_READ_REG(KERN_INFO"mcs341_systemstatus_read_reg %x \n", valb);
-	return valb;
+	return (valb & 0x0F);
 }
 EXPORT_SYMBOL_GPL(contec_mcs341_controller_getSystemStatus);
+
+/**
+	@~English
+	@brief MCS341 Controller's gets dip switch. (4bit)
+	@~Japanese
+	@brief MCS341 ControllerのDIP-Switchを取得する関数 (4bit)
+**/
+static unsigned char contec_mcs341_controller_getDipSwitch(void)
+{
+	unsigned char valb = 0;
+	contec_mcs341_inpb( CPS_CONTROLLER_MCS341_SYSTEMSTATUS_RADDR, &valb );
+	valb = CPS_MCS341_SYSTEMSTATUS_DIPSWITCH_ALL(valb);
+	DEBUG_SYSTEM_STATUS_READ_REG(KERN_INFO"mcs341_dip_switch_read %x \n", valb);
+	return valb;
+}
+EXPORT_SYMBOL_GPL(contec_mcs341_controller_getDipSwitch);
 
 
 /**
@@ -2404,7 +2420,7 @@ static int contec_mcs341_dio0_do_value_show(struct device_driver *drvf, char *bu
 	@param buf : buffer
 	@return Success : Size
 	@~Japanese
-	@brief MCS341 dio0の出力値(エコーバック)をデバイスファイルへ書き出す間数
+	@brief MCS341 ロータリIDをデバイスファイルへ書き出す間数
 	@param drvf : device_driver 構造体
 	@param buf : buffer
 	@return
@@ -2418,26 +2434,119 @@ static int contec_mcs341_rotary_id_show(struct device_driver *drvf, char *buf )
 	return sprintf(buf,"%x", bVal);
 }
 
-static DRIVER_ATTR(led_status1, S_IRUSR | S_IWUSR,
+/**
+	@~English
+	@brief This function is shown device file.
+	@param drvf : device_driver structure
+	@param buf : buffer
+	@return Success : Size
+	@~Japanese
+	@brief MCS341 DIP-SWITCHをデバイスファイルへ書き出す間数
+	@param drvf : device_driver 構造体
+	@param buf : buffer
+	@return
+**/
+static int contec_mcs341_dip_switch_show(struct device_driver *drvf, char *buf )
+{
+	unsigned char bVal = 0;
+
+	bVal = contec_mcs341_controller_getDipSwitch();
+
+	return sprintf(buf,"%x", bVal);
+}
+
+/**
+	@~English
+	@brief This function is shown device file.
+	@param drvf : device_driver structure
+	@param buf : buffer
+	@return Success : Size
+	@~Japanese
+	@brief MCS341 Device_Numberをデバイスファイルへ書き出す間数
+	@param drvf : device_driver 構造体
+	@param buf : buffer
+	@return
+**/
+static int contec_mcs341_device_number_show(struct device_driver *drvf, char *buf )
+{
+	unsigned char bVal = 0;
+
+	bVal = contec_mcs341_controller_getDeviceNum();
+
+	return sprintf(buf,"%d", bVal);
+}
+
+/**
+	@~English
+	@brief This function is shown device file.
+	@param drvf : device_driver structure
+	@param buf : buffer
+	@return Success : Size
+	@~Japanese
+	@brief MCS341 Boardバージョンをデバイスファイルへ書き出す間数
+	@param drvf : device_driver 構造体
+	@param buf : buffer
+	@return
+**/
+static int contec_mcs341_product_version_show(struct device_driver *drvf, char *buf )
+{
+	unsigned char bVal = 0;
+
+	bVal = contec_mcs341_controller_getProductVersion();
+
+	return sprintf(buf,"%d", bVal);
+}
+
+/**
+	@~English
+	@brief This function is shown device file.
+	@param drvf : device_driver structure
+	@param buf : buffer
+	@return Success : Size
+	@~Japanese
+	@brief MCS341 FPGAバージョンをデバイスファイルへ書き出す間数
+	@param drvf : device_driver 構造体
+	@param buf : buffer
+	@return
+**/
+static int contec_mcs341_fpga_version_show(struct device_driver *drvf, char *buf )
+{
+	unsigned char bVal = 0;
+
+	bVal = contec_mcs341_controller_getFpgaVersion();
+
+	return sprintf(buf,"%d", bVal);
+}
+
+
+static DRIVER_ATTR(led_status1, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP	| S_IROTH | S_IWOTH,
 		contec_mcs341_led_status1_show, contec_mcs341_led_status1_store);
-static DRIVER_ATTR(led_status2, S_IRUSR | S_IWUSR,
+static DRIVER_ATTR(led_status2, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP	| S_IROTH | S_IWOTH,
 		contec_mcs341_led_status2_show, contec_mcs341_led_status2_store);
-static DRIVER_ATTR(led_error, S_IRUSR | S_IWUSR,
+static DRIVER_ATTR(led_error, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP	| S_IROTH | S_IWOTH,
 		contec_mcs341_led_error_show, contec_mcs341_led_error_store);
-static DRIVER_ATTR(child_unit_enable, S_IRUSR | S_IWUSR,
+static DRIVER_ATTR(child_unit_enable, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH ,
 		contec_mcs341_child_unit_enable_show, contec_mcs341_child_unit_enable_store);
-static DRIVER_ATTR(child_unit_number, S_IRUSR | S_IWUSR,
+static DRIVER_ATTR(child_unit_number, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH,
 		contec_mcs341_child_unit_number_show, contec_mcs341_child_unit_number_store);
-static DRIVER_ATTR(dio0_direction, S_IRUSR | S_IWUSR,
+static DRIVER_ATTR(dio0_direction, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP	| S_IROTH | S_IWOTH,
 		contec_mcs341_dio0_direction_show, contec_mcs341_dio0_direction_store);
-static DRIVER_ATTR(dio0_filter, S_IRUSR | S_IWUSR,
+static DRIVER_ATTR(dio0_filter, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP	| S_IROTH | S_IWOTH,
 		contec_mcs341_dio0_filter_show, contec_mcs341_dio0_filter_store);
-static DRIVER_ATTR(dio0_do_value, S_IRUSR | S_IWUSR,
+static DRIVER_ATTR(dio0_do_value, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP	| S_IROTH | S_IWOTH,
 		contec_mcs341_dio0_do_value_show, contec_mcs341_dio0_do_value_store);
-static DRIVER_ATTR(dio0_di_value, S_IRUSR,
+static DRIVER_ATTR(dio0_di_value, S_IRUSR | S_IRGRP | S_IROTH,
 		contec_mcs341_dio0_di_value_show, NULL );
-static DRIVER_ATTR(id, S_IRUSR,
+static DRIVER_ATTR(id, S_IRUSR | S_IRGRP | S_IROTH,
 		contec_mcs341_rotary_id_show, NULL );
+static DRIVER_ATTR(switch, S_IRUSR | S_IRGRP | S_IROTH,
+		contec_mcs341_dip_switch_show, NULL );
+static DRIVER_ATTR(stack_devices, S_IRUSR | S_IRGRP | S_IROTH,
+		contec_mcs341_device_number_show, NULL );
+static DRIVER_ATTR(product_revision, S_IRUSR | S_IRGRP | S_IROTH,
+		contec_mcs341_product_version_show, NULL );
+static DRIVER_ATTR(fpga_revision, S_IRUSR | S_IRGRP | S_IROTH,
+		contec_mcs341_fpga_version_show, NULL );
 
 /**
 	@struct contec_mcs341_driver
@@ -2477,6 +2586,10 @@ static int contec_mcs341_create_driver_sysfs(struct platform_driver *drvp){
 	err |= driver_create_file(&drvp->driver, &driver_attr_dio0_do_value);
 	err |= driver_create_file(&drvp->driver, &driver_attr_dio0_di_value);
 	err |= driver_create_file(&drvp->driver, &driver_attr_id);
+	err |= driver_create_file(&drvp->driver, &driver_attr_switch);
+	err |= driver_create_file(&drvp->driver, &driver_attr_stack_devices);
+	err |= driver_create_file(&drvp->driver, &driver_attr_product_revision);
+	err |= driver_create_file(&drvp->driver, &driver_attr_fpga_revision);
 
 	return err;
 }
@@ -2502,6 +2615,11 @@ static void contec_mcs341_remove_driver_sysfs(struct platform_driver *drvp)
 	driver_remove_file(&drvp->driver, &driver_attr_dio0_filter);
 	driver_remove_file(&drvp->driver, &driver_attr_dio0_do_value);
 	driver_remove_file(&drvp->driver, &driver_attr_dio0_di_value);
+	driver_remove_file(&drvp->driver, &driver_attr_id);
+	driver_remove_file(&drvp->driver, &driver_attr_switch);
+	driver_remove_file(&drvp->driver, &driver_attr_stack_devices);
+	driver_remove_file(&drvp->driver, &driver_attr_product_revision);
+	driver_remove_file(&drvp->driver, &driver_attr_fpga_revision);
 }
 
 
