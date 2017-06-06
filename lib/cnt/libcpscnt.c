@@ -145,13 +145,13 @@ unsigned long ContecCpsCntGetErrorStrings( unsigned long code, char *Str )
 	@brief CNT Library query Device.
 	@param Id : Device ID
 	@param DeviceName : Device Node Name ( cpscntX )
-	@param Device : Device Name ( CPS-CNT-0808L , etc )
+	@param Device : Device Name ( CPS-CNT-3202I , etc )
 	@return Success: CNT_ERR_SUCCESS
 	@~Japanese
 	@brief クエリデバイス関数
 	@param Id : デバイスID
 	@param DeviceName : デバイスノード名 ( cpscntX )
-	@param Device : デバイス型式名 (  CPS-CNT-0808Lなど )
+	@param Device : デバイス型式名 (  CPS-CNT-3202Iなど )
 	@return 成功: CNT_ERR_SUCCESS
 **/
 unsigned long ContecCpsCntQueryDeviceName( short Index, char *DeviceName, char *Device )
