@@ -106,7 +106,7 @@ typedef struct __cpsaio_driver_file{
 #define DEBUG_CPSAIO_IOCTL(fmt...)	do { } while (0)
 #endif
 
-#if 1
+#if 0
 #define DEBUG_CPSAIO_INTERRUPT_CHECK(fmt...)	printk(fmt)
 #else
 #define DEBUG_CPSAIO_INTERRUPT_CHECK(fmt...)	do { } while (0)

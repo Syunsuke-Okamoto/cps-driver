@@ -231,7 +231,7 @@ unsigned long ContecCpsAioGetErrorStrings( unsigned long code, char *Str )
 	@param Device : Device Name ( CPS-AI-1608LI , etc )
 	@return Success: AIO_ERR_SUCCESS
 	@~Japanese
-	@brief クエリデバイス関数（仮実装）
+	@brief クエリデバイス関数
 	@param Index : デバイスID
 	@param DeviceName : デバイスノード名 ( cpsaioX )
 	@param Device : デバイス型式名 (  CPS-AIO-1608LIなど )
@@ -249,7 +249,7 @@ unsigned long ContecCpsAioQueryDeviceName( short Index, char *DeviceName, char *
 
 	short tmpId = 0;
 
-	for(cnt = 0;cnt < 16 ; cnt ++ ){
+	for(cnt = 0;cnt < CPS_DEVICE_MAX_NUM ; cnt ++ ){
 		sprintf(tmpDevName,"%s%x",baseDeviceName, cnt);
 		ret = ContecCpsAioInit(tmpDevName, &tmpId);
 
