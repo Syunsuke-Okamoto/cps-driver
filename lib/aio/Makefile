@@ -1,7 +1,7 @@
 #CC = gcc
 #LD = ld
-CC = arm-linux-gnueabi-gcc
-LD = arm-linux-gnueabi-ld
+CC := arm-linux-gnueabi-gcc
+LD := arm-linux-gnueabi-ld
 TARGET=libCpsAio.so
 OBJ=libcpsaio.o
 SRC=libcpsaio.c
