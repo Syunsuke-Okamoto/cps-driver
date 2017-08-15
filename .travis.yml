@@ -35,10 +35,6 @@ before_script:
   
 script:
   - make
-  - cd ./release
-  - mkdir mcs341
-  - mkdir mc341
-  - cd ../
   - make release_copy
   - sudo make modules_install
   - cd ../lib
@@ -52,7 +48,8 @@ script:
 
 after_script:
   - $TRAVIS_BUILD_DIR/technical-report
-  - $TRAVIS_BUILD_DIR/driver/release/driver_version_check
+  - cd $TRAVIS_BUILD_DIR/driver/release/
+  - ./driver_version_check
   - cd $TRAVIS_BUILD_DIR/lib/release
   - ls
 
