@@ -48,7 +48,6 @@ script:
 
 after_script:
   - sudo $TRAVIS_BUILD_DIR/technical-report
-  - cat /proc/cpuinfo
   - cd $TRAVIS_BUILD_DIR/driver/release/
   - ./driver_version_check
   - cd $TRAVIS_BUILD_DIR/lib/release
