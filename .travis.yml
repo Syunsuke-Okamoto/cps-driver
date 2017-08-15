@@ -39,6 +39,7 @@ script:
   - sudo make modules_install
   - cd ../lib
   - make
+  - mkdir release
   - make release_copy
   - sudo make install
   - sudo ldconfig
