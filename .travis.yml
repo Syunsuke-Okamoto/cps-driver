@@ -35,6 +35,10 @@ before_script:
   
 script:
   - make
+  - cd ./release
+  - mkdir mcs341
+  - mkdir mc341
+  - cd ../
   - make release_copy
   - sudo make modules_install
   - cd ../lib
