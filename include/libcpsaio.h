@@ -19,7 +19,10 @@
 #define AIO_ERR_INFO_NOT_FIND_DEVICE	10051
 #define AIO_ERR_INFO_INVALID_INFOTYPE	10052
 
-
+#define AIO_ERR_DRV_AI_SAMPLINGTIMES_NULL	11580
+#define AIO_ERR_DRV_AI_AIDATA_NULL	11581
+#define AIO_ERR_DLL_AI_OVER_SAMLINGTIMES	21580
+#define AIO_ERR_DLL_AI_FIFO_EMPTY	21584
 
 #define AIOM_INTERRUPT	0x1300
 
@@ -121,8 +124,8 @@ extern unsigned long ContecCpsAioSetAiChannels( short Id, short AiChannels );
 extern unsigned long ContecCpsAioGetAiChannels( short Id, short *AiChannels );
 extern unsigned long ContecCpsAioStartAi( short Id );
 extern unsigned long ContecCpsAioStopAi( short Id );
-extern unsigned long ContecCpsAioGetAiSamplingData( short Id, short AiSamplingTimes, long AiData[] );
-extern unsigned long ContecCpsAioGetAiSamplingDataEx( short Id, short AiSamplingTimes, double AiData[] );
+extern unsigned long ContecCpsAioGetAiSamplingData( short Id, long *AiSamplingTimes, long AiData[] );
+extern unsigned long ContecCpsAioGetAiSamplingDataEx( short Id, long *AiSamplingTimes, double AiData[] );
 extern unsigned long ContecCpsAioGetAiStatus( short Id, long *AiStatus );
 extern unsigned long ContecCpsAioSingleAi( short Id, short AiChannel, long *AiData );
 extern unsigned long ContecCpsAioSingleAiEx( short Id, short AiChannel, double *AiData );
