@@ -627,17 +627,35 @@ unsigned long ContecCpsAioGetAiStatus( short Id, long *AiStatus )
 	@param AiData : アナログ入力データ配列
 	@return 成功: AIO_ERR_SUCCESS
 **/
-unsigned long ContecCpsAioGetAiSamplingData( short Id, short AiSamplingTimes, long AiData[] )
+unsigned long ContecCpsAioGetAiSamplingData( short Id, long *AiSamplingTimes, long AiData[] )
 {
 
 	unsigned char *tmpAiData;
 	int cnt;
+	int iRet;
 
-	tmpAiData = (unsigned char * )malloc( sizeof(unsigned char)* AiSamplingTimes * 2 );
+	if( AiSamplingTime == (long *)NULL ){
+		return AIO_ERR_DRV_AI_SAMPLINGTIMES_NULL;
+	}
 
-	read( Id, tmpAiData , (size_t)(AiSamplingTimes * 2) );
+	if( AiData == (long*)NULL ){
+		return AIO_ERR_DRV_AI_AIDATA_NULL;
+	}
 
-	for( cnt = 0;cnt < AiSamplingTimes * 2; cnt += 2 ){
+	tmpAiData = (unsigned char * )malloc( sizeof(unsigned char)* (*AiSamplingTimes) * 2 );
+
+
+	iRet = read( Id, tmpAiData , (size_t)(*AiSamplingTimes * 2) );
+
+	if( iRet < 0 ){
+		return iRet;
+	}
+
+	if (iRet < *AiSamplingTimes * 2 ){
+		*AiSamplingTimes = iRet / 2;	// ucharのLengthのため ushortの数にあわせるため 2でわる
+	}
+
+	for( cnt = 0;cnt < *AiSamplingTimes * 2; cnt += 2 ){
 		AiData[cnt/2] = (long) ( ( tmpAiData[cnt+1] << 8 ) | tmpAiData[cnt]);
 	}
 
@@ -659,7 +677,7 @@ unsigned long ContecCpsAioGetAiSamplingData( short Id, short AiSamplingTimes, lo
 	@param AiData : アナログ入力データ配列
 	@return 成功: AIO_ERR_SUCCESS
 **/
-unsigned long ContecCpsAioGetAiSamplingDataEx( short Id, short AiSamplingTimes, double AiData[] )
+unsigned long ContecCpsAioGetAiSamplingDataEx( short Id, long *AiSamplingTimes, double AiData[] )
 {
 
 	long *tmpAiData;
@@ -667,9 +685,9 @@ unsigned long ContecCpsAioGetAiSamplingDataEx( short Id, short AiSamplingTimes, 
 	int cnt;
 	double dblMin, dblMax;
 
-	tmpAiData = (long*)malloc( sizeof(long) * AiSamplingTimes );
+	tmpAiData = (long*)malloc( sizeof(long) * (*AiSamplingTimes) );
 
-	ContecCpsAioGetAiSamplingData( Id, AiSamplingTimes, tmpAiData );
+	ContecCpsAioGetAiSamplingData( Id, *AiSamplingTimes, tmpAiData );
 
 	ContecCpsAioGetAiResolution( Id, &AiResolution );
 
@@ -683,7 +701,7 @@ unsigned long ContecCpsAioGetAiSamplingDataEx( short Id, short AiSamplingTimes, 
 			break;
 	}
 */	
-	for( cnt = 0;cnt < AiSamplingTimes; cnt ++){
+	for( cnt = 0;cnt < *AiSamplingTimes; cnt ++){
 		AiData[cnt] =  (double)( tmpAiData[cnt] / pow(2.0,AiResolution) ) *(dblMax - dblMin) + dblMin;
 	}
 	free(tmpAiData);
