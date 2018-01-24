@@ -1103,7 +1103,7 @@ static void autoconfig_16550a(struct uart_8250_port *up)
 			unsigned char fpgaVer = 0;
 			//  CONPROSYS Devices gets product id and fpga version.
 			id = contec_mcs341_device_productid_get( up->port.line / 2 );
-			fpgaVer = contec_mcs341_device_productid_get( up->port.line / 2 );
+			fpgaVer = contec_mcs341_device_fpga_version_get( up->port.line / 2 );
 
 			if( ( id == CPS_DEVICE_COM2PC ||
 					id == CPS_DEVICE_COM2PD ||
@@ -2366,7 +2366,7 @@ static int cpscom_startup(struct uart_port *port)
 dont_test_tx_en:
 
 	// 2018.01.19
-	if( up->port.type != PORT_CPS16550 ){
+	if( up->port.type != PORT_CPS16550A ){
 		serial_outp(up, UART_LCR, UART_LCR_CONF_MODE_A );
 		serial_outp(up, UART_FCR, 0x80 );
 		serial_outp(up, UART_LCR, 0);
@@ -2941,7 +2941,7 @@ cpscom_verify_port(struct uart_port *port, struct serial_struct *ser)
 }
 
 /***
-	Ver.1.0.1 Ioctl called AutoRS485 Enable/Disable Function.  (from CPS16550 only )
+	Ver.1.0.1 Ioctl called AutoRS485 Enable/Disable Function.  (from CPS16550/CPS16550A only )
 ***/
 
 #define UART_FCTR_RS485 ( 0x08 )
