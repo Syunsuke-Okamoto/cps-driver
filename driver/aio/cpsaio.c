@@ -40,7 +40,7 @@
  #include "../../include/cpsaio.h"
 
 #endif
-#define DRV_VERSION	"1.0.9"
+#define DRV_VERSION	"1.0.9.1"
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("CONTEC CONPROSYS Analog I/O driver");
@@ -1391,8 +1391,21 @@ static long cpsaio_ioctl( struct file *filp, unsigned int cmd, unsigned long arg
 						return -EFAULT;
 					}
 					spin_unlock_irqrestore(&dev->lock, flags);
+
+					// DataWrite UnLock
+					cps_common_outw(
+							(unsigned long)(dev->baseAddr + OFFSET_COMMAND_DATALOCK_AIO)
+							, CPS_AIO_DATA_UNLOCK
+					);
 					cpsaio_write_eeprom( dev->node , CPS_DEVICE_COMMON_ROM_WRITE_PAGE_AI, num,  valw );
 //					spin_unlock_irqrestore(&dev->lock, flags);
+
+					// DataWrite Lock
+					cps_common_outw(
+							(unsigned long)(dev->baseAddr + OFFSET_COMMAND_DATALOCK_AIO)
+							, CPS_AIO_DATA_LOCK
+					);
+
 
 					DEBUG_CPSAIO_EEPROM(KERN_INFO"EEPROM-WRITE:[%lx]=%x\n",(unsigned long)( dev->baseAddr ), valw );
 					break;
@@ -1414,7 +1427,19 @@ static long cpsaio_ioctl( struct file *filp, unsigned int cmd, unsigned long arg
 					}
 					spin_unlock_irqrestore(&dev->lock, flags);
 
+					// DataWrite UnLock
+					cps_common_outw(
+							(unsigned long)(dev->baseAddr + OFFSET_COMMAND_DATALOCK_AIO)
+							, CPS_AIO_DATA_UNLOCK
+					);
+
 					cpsaio_read_eeprom( dev->node ,CPS_DEVICE_COMMON_ROM_WRITE_PAGE_AI, num, &valw );
+
+					// DataWrite Lock
+					cps_common_outw(
+							(unsigned long)(dev->baseAddr + OFFSET_COMMAND_DATALOCK_AIO)
+							, CPS_AIO_DATA_LOCK
+					);
 
 					spin_lock_irqsave(&dev->lock, flags);
 					ioc.val = (unsigned long) valw;
@@ -1449,8 +1474,21 @@ static long cpsaio_ioctl( struct file *filp, unsigned int cmd, unsigned long arg
 						return -EFAULT;
 					}
 					spin_unlock_irqrestore(&dev->lock, flags);
+
+					// DataWrite UnLock
+					cps_common_outw(
+							(unsigned long)(dev->baseAddr + OFFSET_COMMAND_DATALOCK_AIO)
+							, CPS_AIO_DATA_UNLOCK
+					);
+
 					cpsaio_write_eeprom( dev->node , CPS_DEVICE_COMMON_ROM_WRITE_PAGE_AO, num,  valw );
 					//spin_unlock_irqrestore(&dev->lock, flags);
+
+					// DataWrite Lock
+					cps_common_outw(
+							(unsigned long)(dev->baseAddr + OFFSET_COMMAND_DATALOCK_AIO)
+							, CPS_AIO_DATA_LOCK
+					);
 
 					DEBUG_CPSAIO_EEPROM(KERN_INFO"EEPROM-WRITE:[%lx]=%x\n",(unsigned long)( dev->baseAddr ), valw );
 					break;
@@ -1472,7 +1510,19 @@ static long cpsaio_ioctl( struct file *filp, unsigned int cmd, unsigned long arg
 					}
 					spin_unlock_irqrestore(&dev->lock, flags);
 
+					// DataWrite UnLock
+					cps_common_outw(
+							(unsigned long)(dev->baseAddr + OFFSET_COMMAND_DATALOCK_AIO)
+							, CPS_AIO_DATA_UNLOCK
+					);
+
 					cpsaio_read_eeprom( dev->node ,CPS_DEVICE_COMMON_ROM_WRITE_PAGE_AO, num, &valw );
+
+					// DataWrite Lock
+					cps_common_outw(
+							(unsigned long)(dev->baseAddr + OFFSET_COMMAND_DATALOCK_AIO)
+							, CPS_AIO_DATA_LOCK
+					);
 
 					spin_lock_irqsave(&dev->lock, flags);
 					ioc.val = (unsigned long) valw;
@@ -1499,12 +1549,24 @@ static long cpsaio_ioctl( struct file *filp, unsigned int cmd, unsigned long arg
 
 					spin_unlock_irqrestore(&dev->lock, flags);
 
+					// DataWrite UnLock
+					cps_common_outw(
+							(unsigned long)(dev->baseAddr + OFFSET_COMMAND_DATALOCK_AIO)
+							, CPS_AIO_DATA_UNLOCK
+					);
+
 					if( abi & CPS_AIO_ABILITY_AI )
 						cpsaio_clear_fpga_extension_reg(dev->node ,CPS_DEVICE_COMMON_ROM_WRITE_PAGE_AI, num );
 					if( abi & CPS_AIO_ABILITY_AO )
 						cpsaio_clear_fpga_extension_reg(dev->node ,CPS_DEVICE_COMMON_ROM_WRITE_PAGE_AO, num );
 					cpsaio_clear_eeprom( dev->node );
 //					spin_unlock_irqrestore(&dev->lock, flags);
+
+					// DataWrite Lock
+					cps_common_outw(
+							(unsigned long)(dev->baseAddr + OFFSET_COMMAND_DATALOCK_AIO)
+							, CPS_AIO_DATA_LOCK
+					);
 
 					DEBUG_CPSAIO_EEPROM(KERN_INFO"EEPROM-CLEAR\n");
 					break;
