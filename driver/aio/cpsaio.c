@@ -421,7 +421,7 @@ static long cpsaio_command( unsigned long BaseAddr, unsigned char isReadWrite , 
 		}
 
 		// DataWrite UnLock
-		cps_common_outw( BaseAddr + OFFSET_COMMAND_DATALOCK_AIO	 , CPS_AIO_DATA_UNLOCK );
+		//cps_common_outw( BaseAddr + OFFSET_COMMAND_DATALOCK_AIO	 , CPS_AIO_DATA_UNLOCK );
 
 		cps_common_outw( dat_addr_l , data_l );
 		DEBUG_CPSAIO_COMMAND(KERN_INFO"[%lx]=%04x\n",dat_addr_l, data_l);
@@ -432,7 +432,7 @@ static long cpsaio_command( unsigned long BaseAddr, unsigned char isReadWrite , 
 		}
 
 		// DataWrite Lock
-		cps_common_outw( BaseAddr + OFFSET_COMMAND_DATALOCK_AIO	 , CPS_AIO_DATA_LOCK );
+		//cps_common_outw( BaseAddr + OFFSET_COMMAND_DATALOCK_AIO	 , CPS_AIO_DATA_LOCK );
 
 
 		break;
